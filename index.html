@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Sandbox Architecture — Design Analysis</title>
+  <meta name="description" content="Complete design analysis of secure, scalable agent sandbox infrastructure. Threat modeling, architecture comparison, and best practices.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Mobile nav toggle -->
+  <button class="mobile-nav-toggle" aria-label="Toggle navigation" id="navToggle">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2"/>
+          <rect x="8" y="8" width="7" height="7" rx="1.5" fill="var(--color-accent)"/>
+          <rect x="17" y="8" width="7" height="7" rx="1.5" fill="var(--color-accent)" opacity="0.6"/>
+          <rect x="8" y="17" width="7" height="7" rx="1.5" fill="var(--color-accent)" opacity="0.4"/>
+          <rect x="17" y="17" width="7" height="7" rx="1.5" fill="var(--color-accent)" opacity="0.2"/>
+        </svg>
+        <span>Agent Sandbox<br><small>Architecture Analysis</small></span>
+      </div>
+    </div>
+
+    <div class="sidebar-sections">
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a href="#overview" class="nav-link active" data-section="overview">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m12 8v4l3 3"/></svg>
+          Architecture Overview
+        </a>
+        <a href="#design" class="nav-link" data-section="design">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Detailed Design
+        </a>
+        <a href="#diagrams" class="nav-link" data-section="diagrams">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 17 4-8 4 4 4-8"/></svg>
+          Architecture Diagrams
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Comparison</div>
+        <a href="#comparison" class="nav-link" data-section="comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M8 3H3v5M3 16v5h5M21 16v5h-5"/></svg>
+          Industry Comparison
+        </a>
+        <a href="#zeroboot" class="nav-link" data-section="zeroboot">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m13 2-2 2.5h3L12 7"/><path d="M10 14v-3"/><path d="M14 14v-3"/><rect x="6" y="14" width="12" height="8" rx="2"/></svg>
+          ZeroBoot
+        </a>
+        <a href="#opensandbox" class="nav-link" data-section="opensandbox">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Alibaba OpenSandbox
+        </a>
+        <a href="#isolation" class="nav-link" data-section="isolation">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Isolation Technologies
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Security</div>
+        <a href="#threats" class="nav-link" data-section="threats">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4M12 17h.01"/></svg>
+          STRIDE Threat Model
+        </a>
+        <a href="#attack-surface" class="nav-link" data-section="attack-surface">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Attack Surface
+        </a>
+        <a href="#top-risks" class="nav-link" data-section="top-risks">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="2" width="3" height="16"/></svg>
+          Top 10 Risks
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Recommendations</div>
+        <a href="#best-arch" class="nav-link" data-section="best-arch">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Best Architecture
+        </a>
+        <a href="#implementation" class="nav-link" data-section="implementation">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M5 20V8l7-5 7 5v12"/><path d="M9 20v-5h6v5"/></svg>
+          Implementation Guide
+        </a>
+        <a href="#sources" class="nav-link" data-section="sources">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Sources
+        </a>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="https://github.com/shrikant-pplx" class="gh-link" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="content" id="content">
+
+    <!-- Section: Overview -->
+    <section id="overview" class="section active">
+      <div class="section-header">
+        <div class="breadcrumb">Overview</div>
+        <h1>Agent Sandbox Architecture</h1>
+        <p class="subtitle">Complete design analysis of Browser Use's secure, scalable agent sandbox infrastructure — from AWS Lambda to Unikraft micro-VMs with a proxy-based control plane.</p>
+        <div class="meta-row">
+          <span class="tag">Security</span>
+          <span class="tag">Infrastructure</span>
+          <span class="tag">Micro-VMs</span>
+          <span class="sep">·</span>
+          <span class="meta-text">Source: <a href="https://x.com/larsencc/status/2027225210412470668" target="_blank" rel="noopener">@larsencc</a></span>
+          <span class="sep">·</span>
+          <span class="meta-text">April 2026</span>
+        </div>
+      </div>
+
+      <div class="callout callout-quote">
+        <div class="callout-icon">"</div>
+        <div>
+          <p><strong>Your agent should have nothing worth stealing and nothing worth preserving.</strong></p>
+          <p class="callout-source">— Larsen Cundric, Browser Use</p>
+        </div>
+      </div>
+
+      <h2>Context</h2>
+      <p><a href="https://browser-use.com/posts/two-ways-to-sandbox-agents" target="_blank">Browser Use</a> runs millions of web agents that browse the internet and complete tasks autonomously. Their infrastructure evolved through three stages:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Stage</th><th>Architecture</th><th>Limitations</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-blue">V1</span> AWS Lambda</td>
+              <td>Browser-only agents; each invocation isolated</td>
+              <td>No code execution capability</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-orange">V2</span> Backend + Sandbox Tool</td>
+              <td>Agent loop on backend; code execution in separate sandbox</td>
+              <td>Agent coupled to REST API; redeploys kill agents; resource contention</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-green">V3</span> Isolated Agent + Control Plane</td>
+              <td>Entire agent in Unikraft micro-VM; control plane proxies all external access</td>
+              <td>Extra network hop (negligible vs LLM latency); 3 services to manage</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>The Two Fundamental Patterns</h2>
+      <div class="card-grid">
+        <div class="card card-red">
+          <div class="card-header">
+            <span class="card-num">Pattern 1</span>
+            <h3>Isolate the Tool</h3>
+          </div>
+          <p>The agent runs on your infrastructure. Only dangerous operations (code execution, terminal) run in a separate sandbox. The agent calls the sandbox via HTTP.</p>
+          <div class="card-tags">
+            <span class="check-item check-yes">Security</span>
+            <span class="check-item check-no">Decoupled</span>
+            <span class="check-item check-no">Scalable</span>
+          </div>
+        </div>
+        <div class="card card-green">
+          <div class="card-header">
+            <span class="card-num">Pattern 2</span>
+            <h3>Isolate the Agent</h3>
+          </div>
+          <p>The entire agent runs inside a sandbox with zero secrets. It communicates with the outside world exclusively through a control plane that holds all credentials.</p>
+          <div class="card-tags">
+            <span class="check-item check-yes">Security</span>
+            <span class="check-item check-yes">Decoupled</span>
+            <span class="check-item check-yes">Scalable</span>
+          </div>
+        </div>
+      </div>
+      <p>Browser Use chose <strong>Pattern 2</strong> after starting with Pattern 1. The agent becomes disposable — no secrets to steal, no state to preserve.</p>
+    </section>
+
+    <!-- Section: Detailed Design -->
+    <section id="design" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Overview → Detailed Design</div>
+        <h1>Detailed Design Explanation</h1>
+      </div>
+
+      <h2>The Sandbox Layer</h2>
+      <p>The same container image runs in all environments. A single config switch controls the runtime:</p>
+      <pre><code>sandbox_mode: 'docker' | 'ukc'</code></pre>
+
+      <div class="two-col">
+        <div class="col-card">
+          <h3>Unikraft Micro-VMs <span class="badge badge-green">Production</span></h3>
+          <ul>
+            <li>Each agent gets its own Unikraft micro-VM, booting in <strong>under 1 second</strong></li>
+            <li>Provisioned via Unikraft Cloud's REST API on <strong>dedicated bare metal</strong> in AWS</li>
+            <li>Only <strong>3 env variables</strong>: <code>SESSION_TOKEN</code>, <code>CONTROL_PLANE_URL</code>, <code>SESSION_ID</code></li>
+            <li>No AWS keys, no database credentials, no API tokens</li>
+            <li><strong>Scale-to-zero</strong>: Idle VMs suspend; resume instantly</li>
+            <li>Distributed across <strong>multiple Unikraft metros</strong></li>
+          </ul>
+        </div>
+        <div class="col-card">
+          <h3>Docker Containers <span class="badge badge-blue">Development</span></h3>
+          <ul>
+            <li>Same image, same entrypoint, same control plane protocol</li>
+            <li>Used on dev laptops and eval pipelines</li>
+            <li>Run hundreds in parallel for evaluations</li>
+            <li>Enables full <strong>dev/prod parity</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>Sandbox Hardening</h2>
+      <p>Three hardening techniques execute before any agent code runs:</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Bytecode-Only Execution</h4>
+            <p>During Docker build, all Python source compiles to <code>.pyc</code>. Every <code>.py</code> file is deleted. The framework loads into memory as root — once loaded, source code no longer exists on disk.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Privilege Drop</h4>
+            <p>Entrypoint starts as <code>root</code> (needed for bytecode read), then immediately drops to an unprivileged <code>sandbox</code> user via <code>setuid</code>/<code>setgid</code>. Everything runs unprivileged.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Environment Stripping</h4>
+            <p>After reading tokens into Python variables, they are <strong>deleted from <code>os.environ</code></strong>. If the agent inspects the environment, those variables are gone. Token is useless outside the private VPC anyway.</p>
+          </div>
+        </div>
+      </div>
+
+      <h2>The Control Plane</h2>
+      <p>The control plane is the sole gateway between the sandbox and the outside world — a <strong>stateless FastAPI service</strong>. Every request carries a <code>Bearer: {session_token}</code> header.</p>
+
+      <div class="two-col">
+        <div class="col-card">
+          <h3>LLM Proxying</h3>
+          <ul>
+            <li>Sandbox sends only <strong>new messages</strong></li>
+            <li>Control plane <strong>owns full conversation history</strong> in database</li>
+            <li>Reconstructs complete context per call, forwards to provider</li>
+            <li>Sandbox is <strong>stateless</strong> — kill and replace seamlessly</li>
+            <li>Enforces <strong>cost caps</strong> and handles billing</li>
+          </ul>
+        </div>
+        <div class="col-card">
+          <h3>File Sync via Presigned URLs</h3>
+          <ol>
+            <li>Sandbox detects changed files in <code>/workspace</code></li>
+            <li>Calls <code>POST /presigned-urls</code> with file paths</li>
+            <li>Control plane generates <strong>presigned S3 URLs</strong> (session-scoped)</li>
+            <li>Sandbox uploads directly to S3</li>
+          </ol>
+          <p class="note">The sandbox <strong>never holds an AWS credential</strong>.</p>
+        </div>
+      </div>
+
+      <h3>The Gateway Protocol</h3>
+      <pre><code class="lang-python">class AgentGateway(Protocol):
+    async def invoke_llm(self, new_messages, tools, tool_choice) -> LLMResponse: ...
+    async def persist_messages(self, messages) -> None: ...</code></pre>
+      <p>In production, <code>ControlPlaneGateway</code> sends HTTP to the control plane. In dev, <code>DirectGateway</code> calls the LLM directly. The agent code doesn't know which one it's using.</p>
+
+      <h2>Scaling Architecture</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Technology</th><th>Scaling Mechanism</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Backend</strong></td><td>ECS Fargate behind ALB</td><td>Auto-scales on CPU utilization</td></tr>
+            <tr><td><strong>Control Plane</strong></td><td>Stateless FastAPI on ECS Fargate</td><td>Horizontal scaling; stateless</td></tr>
+            <tr><td><strong>Sandboxes</strong></td><td>Unikraft micro-VMs on bare metal</td><td>Each session = own VM; multi-metro scheduling</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section: Diagrams -->
+    <section id="diagrams" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Overview → Diagrams</div>
+        <h1>Architecture Diagrams</h1>
+      </div>
+
+      <h2>Pattern 1: Isolate the Tool</h2>
+      <p>The initial approach — agent loop runs on backend alongside the REST API:</p>
+      <div class="diagram-container">
+        <pre class="diagram"><code>┌─────────────────────────────┐
+│         BACKEND             │
+│  ┌──────────┐ ┌───────────┐│         ┌─────────────────────────┐
+│  │ REST API │ │Agent Loop ─┼────────►│ External Services       │
+│  └──────────┘ └─────┬─────┘│         │ (LLM, S3, Browser)      │
+│                     │       │         └─────────────────────────┘
+└─────────────────────┼───────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │Terminal Sandbox│
+              └───────────────┘
+
+        Security ✓  ·  Decoupled ✗  ·  Scalable ✗</code></pre>
+      </div>
+
+      <h2>Pattern 2: Isolate the Agent</h2>
+      <p>The final architecture — entire agent in sandbox, all access through control plane:</p>
+      <div class="diagram-container">
+        <pre class="diagram"><code>┌─────────┐     ┌───────────────┐     ┌───────────────┐     ┌─────────────────────┐
+│ Backend │────►│ Agent Sandbox │────►│ Control Plane │────►│ External Services   │
+│         │     │  (Unikraft    │     │  (Stateless   │     │ (LLM, S3, Browser)  │
+│         │     │   micro-VM)   │     │   FastAPI)    │     │                     │
+└─────────┘     └───────────────┘     └───────────────┘     └─────────────────────┘
+
+        Security ✓  ·  Decoupled ✓  ·  Scalable ✓</code></pre>
+      </div>
+
+      <h2>Full Production Architecture</h2>
+      <div class="diagram-container">
+        <pre class="diagram diagram-wide"><code>┌──────────────────┐  ┌─────────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────┐
+│     BACKEND      │  │     UNIKRAFT BARE METAL      │  │      CONTROL PLANE       │  │  EXTERNAL SERVICES │
+│  (ECS Fargate)   │  │                               │  │   (ECS Fargate + ALB)    │  │                    │
+│                  │  │  ┌─────────────────────────┐  │  │                          │  │  ┌──────────────┐  │
+│  ┌────────────┐  │  │  │  Agent Sandbox 1 (VM)   │  │  │  ┌──────────────────┐   │  │  │  Storage     │  │
+│  │ Instance 1 ├──┼──┼─►│                         ├──┼──┼─►│   Instance 1     │───┼──┼─►│  (S3)        │  │
+│  └────────────┘  │  │  └─────────────────────────┘  │  │  └──────────────────┘   │  │  └──────────────┘  │
+│                  │  │  ┌─────────────────────────┐  │  │                          │  │                    │
+│  ┌────────────┐  │  │  │  Agent Sandbox 2 (VM)   │  │  │  ┌──────────────────┐   │  │  ┌──────────────┐  │
+│  │ Instance 2 ├──┼──┼─►│                         ├──┼──┼─►│   Instance 2     │───┼──┼─►│ LLM Provider │  │
+│  └────────────┘  │  │  └─────────────────────────┘  │  │  └──────────────────┘   │  │  └──────────────┘  │
+│                  │  │  ┌─────────────────────────┐  │  │                          │  │                    │
+│                  │  │  │  Agent Sandbox 3 (VM)   │  │  │  ┌──────────────────┐   │  │  ┌──────────────┐  │
+│                  │  │  │                         ├──┼──┼─►│   Instance 3     │───┼──┼─►│   Browser    │  │
+│                  │  │  └─────────────────────────┘  │  │  └──────────────────┘   │  │  └──────────────┘  │
+│                  │  │  ┌─────────────────────────┐  │  │                          │  │                    │
+│                  │  │  │  Agent Sandbox N (VM)   │  │  │                          │  │                    │
+│                  │  │  └─────────────────────────┘  │  │                          │  │                    │
+└──────────────────┘  └─────────────────────────────┘  └──────────────────────────┘  └────────────────────┘
+
+   Auto-scales CPU        Each session = VM            Stateless; horizontal       Managed external
+   via ECS Fargate        Multi-metro scheduling       scaling behind ALB          services</code></pre>
+      </div>
+
+      <h2>Data Flow: LLM Proxying</h2>
+      <div class="diagram-container">
+        <pre class="diagram"><code>┌──────────────────┐           ┌─────────────────────┐           ┌────────────────┐
+│  Agent Sandbox   │           │    Control Plane     │           │  LLM Provider  │
+│  (Unikraft VM)   │           │    (FastAPI)         │           │                │
+│                  │  HTTP     │                     │           │                │
+│  Generate new   ─┼─────────►│  1. Validate token  │           │                │
+│  messages        │  Bearer:  │  2. Look up session │  API call │                │
+│                  │  {token}  │  3. Reconstruct     ├──────────►│  Process full  │
+│                  │           │     full history     │           │  conversation  │
+│  Receive LLM    │◄──────────┤  4. Return response  │◄──────────┤  Return        │
+│  response       │           │  5. Enforce cost cap │           │  completion    │
+└──────────────────┘           └─────────────────────┘           └────────────────┘</code></pre>
+      </div>
+
+      <h2>Sandbox Hardening Sequence</h2>
+      <div class="diagram-container">
+        <pre class="diagram"><code>┌──────────────────────────────────────────────────────────────┐
+│                    SANDBOX BOOT SEQUENCE                     │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ STEP 1: Bytecode-Only Execution                        │  │
+│  │  • compile .py → .pyc  •  delete all .py source        │  │
+│  │  • load framework as root from .pyc                    │  │
+│  └────────────────────────────┬───────────────────────────┘  │
+│                               ▼                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ STEP 2: Privilege Drop                                 │  │
+│  │  • setuid/setgid → 'sandbox' user                      │  │
+│  │  • all subsequent execution is unprivileged            │  │
+│  └────────────────────────────┬───────────────────────────┘  │
+│                               ▼                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ STEP 3: Environment Stripping                          │  │
+│  │  • read tokens into memory  •  delete from os.environ  │  │
+│  │  • token useless outside private VPC                   │  │
+│  └────────────────────────────┬───────────────────────────┘  │
+│                               ▼                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ ▶ AGENT RUNS — unprivileged, no env vars, no source   │  │
+│  │   code, private VPC, control plane access only         │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘</code></pre>
+      </div>
+    </section>
+
+    <!-- Section: Comparison -->
+    <section id="comparison" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Comparison → Industry</div>
+        <h1>Comparative Analysis</h1>
+        <p class="subtitle">How Browser Use's architecture compares to other production agent systems.</p>
+      </div>
+
+      <h2>Industry Landscape</h2>
+      <div class="table-wrap table-scroll">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Browser Use</th>
+              <th>Manus AI</th>
+              <th>OpenAI Codex</th>
+              <th>Claude Code</th>
+              <th>GKE Agent Sandbox</th>
+              <th>Devin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Isolation Tech</strong></td>
+              <td>Unikraft micro-VMs</td>
+              <td>E2B (Firecracker)</td>
+              <td>Landlock + seccomp</td>
+              <td>Bubblewrap / Seatbelt</td>
+              <td>gVisor</td>
+              <td>Docker/VM cloud</td>
+            </tr>
+            <tr>
+              <td><strong>Isolation Level</strong></td>
+              <td><span class="badge badge-green">Hardware VM</span></td>
+              <td><span class="badge badge-green">Hardware VM</span></td>
+              <td><span class="badge badge-orange">OS-level</span></td>
+              <td><span class="badge badge-orange">OS-level</span></td>
+              <td><span class="badge badge-blue">Syscall-level</span></td>
+              <td><span class="badge badge-green">VM-level</span></td>
+            </tr>
+            <tr>
+              <td><strong>Sandbox Pattern</strong></td>
+              <td>Pattern 2: Agent</td>
+              <td>Pattern 2: Full VM</td>
+              <td>Hybrid</td>
+              <td>Hybrid</td>
+              <td>Pattern 1: Tool</td>
+              <td>Pattern 2: Full VM</td>
+            </tr>
+            <tr>
+              <td><strong>Network Isolation</strong></td>
+              <td>Private VPC; CP only</td>
+              <td>Full internet in VM</td>
+              <td>Network off by default</td>
+              <td>Proxy + allowlists</td>
+              <td>K8s Network Policy</td>
+              <td>Network-capable</td>
+            </tr>
+            <tr>
+              <td><strong>State Model</strong></td>
+              <td>Stateless sandbox</td>
+              <td>Persistent w/ sleep/wake</td>
+              <td>Stateful per project</td>
+              <td>Stateful working dir</td>
+              <td>Ephemeral pods</td>
+              <td>Persistent workspace</td>
+            </tr>
+            <tr>
+              <td><strong>Boot Time</strong></td>
+              <td>&lt; 1s</td>
+              <td>~150ms</td>
+              <td>~ms (OS sandbox)</td>
+              <td>~ms (Bubblewrap)</td>
+              <td>Sub-sec (warm pool)</td>
+              <td>Seconds (full VM)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Pattern Comparison</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Aspect</th><th>Pattern 1: Isolate the Tool</th><th>Pattern 2: Isolate the Agent</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Who uses it</strong></td><td>Google GKE, early Browser Use</td><td>Browser Use, Manus, Devin, E2B</td></tr>
+            <tr><td><strong>Agent runs where</strong></td><td>On your infrastructure</td><td>Inside isolated sandbox</td></tr>
+            <tr><td><strong>Secrets exposure</strong></td><td>Agent has access to infra secrets</td><td>Agent has zero secrets</td></tr>
+            <tr><td><strong>Failure blast radius</strong></td><td>Can affect backend</td><td>Fully contained</td></tr>
+            <tr><td><strong>Scalability</strong></td><td>Coupled to backend</td><td>Each layer scales independently</td></tr>
+            <tr><td><strong>State recovery</strong></td><td>Agent death loses state</td><td>State in control plane; sandbox disposable</td></tr>
+            <tr><td><strong>Best for</strong></td><td>Low-risk, trusted agents</td><td>Multi-tenant, untrusted code</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section: ZeroBoot -->
+    <section id="zeroboot" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Comparison → ZeroBoot</div>
+        <h1>ZeroBoot</h1>
+        <p class="subtitle">Sub-millisecond VM sandboxes for AI agents via copy-on-write forking.</p>
+        <div class="meta-row">
+          <a href="https://github.com/zerobootdev/zeroboot" target="_blank" class="tag tag-link">GitHub</a>
+          <span class="tag">Rust</span>
+          <span class="tag">KVM</span>
+          <span class="tag">Apache-2.0</span>
+          <span class="sep">·</span>
+          <span class="meta-text">2k stars</span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">⚡</div>
+        <div>
+          <p><strong>0.79ms spawn latency (p50)</strong> — orders of magnitude faster than any other sandbox technology. Each fork is a real KVM virtual machine with hardware-enforced memory isolation.</p>
+        </div>
+      </div>
+
+      <h2>How It Works</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Template (one-time)</h4>
+            <p>Firecracker boots a VM, pre-loads your runtime (Python, Node, etc.), and snapshots memory + CPU state. This takes ~15 seconds.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Fork (~0.8ms)</h4>
+            <p>Creates a new KVM VM, maps snapshot memory as copy-on-write (<code>mmap(MAP_PRIVATE)</code>), and restores all CPU state. Hardware-enforced memory isolation.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Execute</h4>
+            <p>Agent code runs inside the forked VM. Communication happens via serial I/O only — no networking inside forks.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-container">
+        <pre class="diagram"><code>Firecracker snapshot ──► mmap(MAP_PRIVATE) ──► KVM VM + restored CPU state
+                           (copy-on-write)         (~0.8ms)</code></pre>
+      </div>
+
+      <h2>Performance Benchmarks</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Metric</th><th class="highlight-col">ZeroBoot</th><th>E2B</th><th>microsandbox</th><th>Daytona</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Spawn latency p50</strong></td><td class="highlight-col"><strong>0.79ms</strong></td><td>~150ms</td><td>~200ms</td><td>~27ms</td></tr>
+            <tr><td><strong>Spawn latency p99</strong></td><td class="highlight-col"><strong>1.74ms</strong></td><td>~300ms</td><td>~400ms</td><td>~90ms</td></tr>
+            <tr><td><strong>Memory per sandbox</strong></td><td class="highlight-col"><strong>~265KB</strong></td><td>~128MB</td><td>~50MB</td><td>~50MB</td></tr>
+            <tr><td><strong>Fork + exec (Python)</strong></td><td class="highlight-col"><strong>~8ms</strong></td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td><strong>1000 concurrent forks</strong></td><td class="highlight-col"><strong>815ms</strong></td><td>—</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Limitations</h2>
+      <div class="callout callout-warn">
+        <div class="callout-icon">⚠</div>
+        <div>
+          <ul>
+            <li><strong>CSPRNG state sharing</strong> — Forks share random state from snapshot. Kernel entropy is reseeded but userspace PRNGs (numpy, OpenSSL) need explicit reseeding.</li>
+            <li><strong>Single vCPU</strong> — Each fork runs on one vCPU. Multi-vCPU is possible but not yet implemented.</li>
+            <li><strong>No networking</strong> — Sandboxes communicate via serial I/O only. No outbound network.</li>
+            <li><strong>Template updates</strong> — Require full re-snapshot (~15s). No incremental patching.</li>
+            <li><strong>Working prototype</strong> — Not production-hardened yet.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>Architectural Implications</h2>
+      <p>ZeroBoot's CoW fork model is ideal for <strong>short-lived, high-throughput agent tasks</strong> where thousands of sandboxes need to spawn simultaneously (e.g., parallel evals, batch processing). The lack of networking means it's best paired with a <strong>control plane proxy pattern</strong> (like Browser Use's) or used for pure code execution where results are returned via serial I/O.</p>
+      <p>For Browser Use's architecture specifically, ZeroBoot could replace Unikraft as the sandbox layer with dramatic latency improvements (0.8ms vs &lt;1s), but would require a serial I/O protocol instead of HTTP for sandbox-to-control-plane communication.</p>
+    </section>
+
+    <!-- Section: OpenSandbox -->
+    <section id="opensandbox" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Comparison → OpenSandbox</div>
+        <h1>Alibaba OpenSandbox</h1>
+        <p class="subtitle">General-purpose, Kubernetes-native sandbox platform for AI agents. Listed in the CNCF Landscape.</p>
+        <div class="meta-row">
+          <a href="https://github.com/alibaba/OpenSandbox" target="_blank" class="tag tag-link">GitHub</a>
+          <span class="tag">Python</span>
+          <span class="tag">Go</span>
+          <span class="tag">Kubernetes</span>
+          <span class="tag">Apache-2.0</span>
+          <span class="sep">·</span>
+          <span class="meta-text">9.7k stars · 72 releases</span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">📦</div>
+        <div>
+          <p><strong>Full-featured sandbox platform</strong> with multi-language SDKs (Python, Java, TypeScript, C#, Go), unified APIs, Docker/Kubernetes runtimes, and pluggable isolation backends (gVisor, Kata, Firecracker).</p>
+        </div>
+      </div>
+
+      <h2>Architecture Overview</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>server/</code></td><td>Python FastAPI sandbox lifecycle server</td></tr>
+            <tr><td><code>components/execd/</code></td><td>Execution daemon — commands and file operations</td></tr>
+            <tr><td><code>components/ingress/</code></td><td>Sandbox traffic ingress proxy with routing</td></tr>
+            <tr><td><code>components/egress/</code></td><td>Per-sandbox network egress control</td></tr>
+            <tr><td><code>sandboxes/</code></td><td>Runtime sandbox implementations</td></tr>
+            <tr><td><code>sdks/</code></td><td>Multi-language SDKs (Python, Java/Kotlin, TypeScript, C#)</td></tr>
+            <tr><td><code>specs/</code></td><td>OpenAPI specs and lifecycle specifications</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Key Features</h2>
+      <div class="card-grid card-grid-3">
+        <div class="card">
+          <h3>Multi-Runtime</h3>
+          <p>Docker for local dev, high-performance Kubernetes runtime for production. Pluggable isolation: gVisor, Kata Containers, or Firecracker microVM.</p>
+        </div>
+        <div class="card">
+          <h3>Network Control</h3>
+          <p>Unified ingress gateway with multiple routing strategies. Per-sandbox egress controls — fine-grained outbound access policy per workload.</p>
+        </div>
+        <div class="card">
+          <h3>Built-in Environments</h3>
+          <p>Code interpreter, browser automation (Chrome, Playwright), desktop environments (VNC, VS Code), and RL training sandboxes out of the box.</p>
+        </div>
+        <div class="card">
+          <h3>Multi-Language SDKs</h3>
+          <p>Python, Java/Kotlin, JavaScript/TypeScript, C#/.NET with Go on the roadmap. Sandbox + Code Interpreter SDKs.</p>
+        </div>
+        <div class="card">
+          <h3>Agent Integrations</h3>
+          <p>Works with Claude Code, Gemini CLI, OpenAI Codex CLI, Qwen Code, LangGraph, Google ADK, and more.</p>
+        </div>
+        <div class="card">
+          <h3>CNCF Listed</h3>
+          <p>Part of the CNCF Landscape. Kubernetes-native design with 925 commits and 72 releases — production-grade maturity.</p>
+        </div>
+      </div>
+
+      <h3>Usage Example</h3>
+      <pre><code class="lang-python">from opensandbox import Sandbox
+from code_interpreter import CodeInterpreter, SupportedLanguage
+
+sandbox = await Sandbox.create(
+    "opensandbox/code-interpreter:v1.0.2",
+    entrypoint=["/opt/opensandbox/code-interpreter.sh"],
+    env={"PYTHON_VERSION": "3.11"},
+    timeout=timedelta(minutes=10),
+)
+async with sandbox:
+    result = await sandbox.commands.run("echo 'Hello OpenSandbox!'")
+    interpreter = await CodeInterpreter.create(sandbox)
+    output = await interpreter.codes.run(code, language=SupportedLanguage.PYTHON)</code></pre>
+
+      <h2>Comparison with Browser Use's Approach</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Dimension</th><th>Browser Use</th><th>OpenSandbox</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Focus</strong></td><td>Custom, vertically integrated for Browser Use's agents</td><td>General-purpose platform; framework-agnostic</td></tr>
+            <tr><td><strong>Isolation</strong></td><td>Unikraft only</td><td>Pluggable: gVisor, Kata, Firecracker</td></tr>
+            <tr><td><strong>Orchestration</strong></td><td>Custom bare metal + ECS</td><td>Kubernetes-native</td></tr>
+            <tr><td><strong>SDK Support</strong></td><td>Python (internal)</td><td>Python, Java, TypeScript, C#, Go</td></tr>
+            <tr><td><strong>Network Control</strong></td><td>Private VPC + control plane proxy</td><td>Ingress gateway + per-sandbox egress policy</td></tr>
+            <tr><td><strong>Control Plane</strong></td><td>Custom FastAPI proxy (LLM, storage, billing)</td><td>Lifecycle management server (spawn, kill, exec)</td></tr>
+            <tr><td><strong>Best For</strong></td><td>Teams running their own agent platform</td><td>Teams wanting a turnkey sandbox infrastructure</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section: Isolation Technologies -->
+    <section id="isolation" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Comparison → Isolation Technologies</div>
+        <h1>Isolation Technologies</h1>
+      </div>
+
+      <div class="table-wrap table-scroll">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Technology</th>
+              <th>Boundary</th>
+              <th>Boot Time</th>
+              <th>Overhead</th>
+              <th>Security</th>
+              <th>Used By</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Docker</strong></td>
+              <td>Linux namespaces + cgroups</td>
+              <td>Milliseconds</td>
+              <td>Minimal</td>
+              <td><span class="badge badge-red">Low</span></td>
+              <td>Dev/test only</td>
+            </tr>
+            <tr>
+              <td><strong>gVisor</strong></td>
+              <td>User-space kernel</td>
+              <td>Milliseconds</td>
+              <td>10-30% I/O</td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Google GKE, Modal</td>
+            </tr>
+            <tr>
+              <td><strong>Firecracker</strong></td>
+              <td>Hardware virtualization (KVM)</td>
+              <td>~125ms</td>
+              <td>~5 MiB/VM</td>
+              <td><span class="badge badge-green">High</span></td>
+              <td>AWS Lambda, E2B, Manus</td>
+            </tr>
+            <tr>
+              <td><strong>Unikraft</strong></td>
+              <td>Unikernel micro-VM</td>
+              <td>&lt; 1 second</td>
+              <td>Very low</td>
+              <td><span class="badge badge-green">High</span></td>
+              <td>Browser Use</td>
+            </tr>
+            <tr>
+              <td><strong>ZeroBoot</strong></td>
+              <td>CoW fork of Firecracker VM</td>
+              <td><strong>0.79ms</strong></td>
+              <td><strong>~265KB/VM</strong></td>
+              <td><span class="badge badge-green">High</span></td>
+              <td>Early-stage (working prototype)</td>
+            </tr>
+            <tr>
+              <td><strong>Kata Containers</strong></td>
+              <td>Full VM, K8s-native</td>
+              <td>~200ms</td>
+              <td>Low-moderate</td>
+              <td><span class="badge badge-green">High</span></td>
+              <td>Northflank, enterprise K8s</td>
+            </tr>
+            <tr>
+              <td><strong>OS Sandbox</strong></td>
+              <td>Syscall filtering</td>
+              <td>Negligible</td>
+              <td>Negligible</td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>OpenAI Codex, Claude Code</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Emerging Architectural Patterns</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Control Plane as a Tool</h3>
+          <p>Expose a single tool interface to agents while encapsulating modular routing logic. Browser Use is an excellent implementation.</p>
+        </div>
+        <div class="card">
+          <h3>Sidecar Proxy Pattern</h3>
+          <p>Like service meshes (Envoy/Istio), a sidecar mediates all communication — injecting auth, enforcing rate limits, preventing credential exposure.</p>
+        </div>
+        <div class="card">
+          <h3>Multi-Agent Interoperability</h3>
+          <p>Google's A2A Protocol and Anthropic's MCP enabling agents from different systems to communicate via standardized protocols.</p>
+        </div>
+        <div class="card">
+          <h3>CoW Fork Sandboxing</h3>
+          <p>ZeroBoot's approach — snapshot a VM, then fork it via copy-on-write for sub-millisecond spawns with hardware isolation. The next frontier.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: STRIDE Threats -->
+    <section id="threats" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Security → STRIDE Model</div>
+        <h1>STRIDE Threat Model</h1>
+        <p class="subtitle">Systematic threat analysis of Browser Use's agent sandbox architecture.</p>
+      </div>
+
+      <h2>Spoofing</h2>
+      <div class="table-wrap">
+        <table class="threat-table">
+          <thead><tr><th>Threat</th><th>Risk</th><th>Existing Mitigation</th><th>Residual Risk</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Session Token Theft</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Env stripping; token useless outside private VPC</td>
+              <td>Token exists in Python process memory; memory dump could extract it</td>
+            </tr>
+            <tr>
+              <td><strong>Control Plane Impersonation</strong></td>
+              <td><span class="badge badge-blue">Low</span></td>
+              <td>Sandbox connects only to CONTROL_PLANE_URL within private VPC</td>
+              <td>VPC routing compromise enables MITM; mTLS would mitigate</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Tampering</h2>
+      <div class="table-wrap">
+        <table class="threat-table">
+          <thead><tr><th>Threat</th><th>Risk</th><th>Existing Mitigation</th><th>Residual Risk</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Conversation History Poisoning</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Control plane reconstructs from DB</td>
+              <td>Unsanitized new messages could produce prompt injection against LLM</td>
+            </tr>
+            <tr>
+              <td><strong>Control Plane Request Manipulation</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Session validation, cost caps</td>
+              <td>Insufficient input validation could allow injection attacks</td>
+            </tr>
+            <tr>
+              <td><strong>Bytecode Tampering</strong></td>
+              <td><span class="badge badge-blue">Low</span></td>
+              <td>Privilege drop; bytecode owned by root</td>
+              <td>Kernel/Unikraft escalation would enable modification</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Information Disclosure</h2>
+      <div class="table-wrap">
+        <table class="threat-table">
+          <thead><tr><th>Threat</th><th>Risk</th><th>Existing Mitigation</th><th>Residual Risk</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Memory Inspection</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Env stripping; bytecode-only</td>
+              <td>/proc/self/mem or Python ctypes could inspect process memory</td>
+            </tr>
+            <tr>
+              <td><strong>Presigned URL Leakage</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Session-scoped, time-limited URLs</td>
+              <td>Long expiry or unrestricted generation rate enables bulk extraction</td>
+            </tr>
+            <tr>
+              <td><strong>Side-Channel Attacks</strong></td>
+              <td><span class="badge badge-blue">Low</span></td>
+              <td>Each agent gets own Unikraft VM</td>
+              <td>Shared bare metal could theoretically share cache</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Denial of Service</h2>
+      <div class="table-wrap">
+        <table class="threat-table">
+          <thead><tr><th>Threat</th><th>Risk</th><th>Existing Mitigation</th><th>Residual Risk</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Control Plane Overload</strong></td>
+              <td><span class="badge badge-red">High</span></td>
+              <td>Auto-scaling on CPU; ALB</td>
+              <td>No per-session rate limiting mentioned; single agent could flood requests</td>
+            </tr>
+            <tr>
+              <td><strong>LLM Cost Bombing</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Cost caps in control plane</td>
+              <td>Enforcement speed is critical; delayed checks allow cost spikes</td>
+            </tr>
+            <tr>
+              <td><strong>Fork Bomb / Process Exhaustion</strong></td>
+              <td><span class="badge badge-orange">Medium</span></td>
+              <td>Privilege drop</td>
+              <td>Without explicit PID limits, fork bomb could exhaust VM resources</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Elevation of Privilege</h2>
+      <div class="table-wrap">
+        <table class="threat-table">
+          <thead><tr><th>Threat</th><th>Risk</th><th>Existing Mitigation</th><th>Residual Risk</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Control Plane Exploitation</strong></td>
+              <td><span class="badge badge-red">High</span></td>
+              <td>Private subnets; standard security</td>
+              <td>Control plane holds ALL credentials — compromise = total system access</td>
+            </tr>
+            <tr>
+              <td><strong>Sandbox Escape</strong></td>
+              <td><span class="badge badge-blue">Low</span></td>
+              <td>Unikraft hardware-level VM isolation</td>
+              <td>Unikraft less battle-tested than Firecracker; undiscovered escape vectors possible</td>
+            </tr>
+            <tr>
+              <td><strong>Privilege Escalation in Sandbox</strong></td>
+              <td><span class="badge badge-blue">Low</span></td>
+              <td>setuid/setgid privilege drop</td>
+              <td>Guest OS kernel vulnerabilities; Unikraft's minimal kernel reduces surface</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section: Attack Surface -->
+    <section id="attack-surface" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Security → Attack Surface</div>
+        <h1>Attack Surface Map</h1>
+      </div>
+
+      <div class="diagram-container">
+        <pre class="diagram diagram-wide"><code>                                    ATTACK SURFACE MAP
+                                    ══════════════════
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            EXTERNAL ATTACKERS                                │
+│                                                                              │
+│   ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐  │
+│   │ Prompt Injection │     │ Malicious Agent  │     │ Supply Chain Attack │  │
+│   │ via User Input   │     │ Code Execution   │     │ on Dependencies    │  │
+│   └────────┬────────┘     └────────┬─────────┘     └──────────┬──────────┘  │
+└────────────┼───────────────────────┼───────────────────────────┼──────────────┘
+             │                       │                           │
+             ▼                       ▼                           ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        AGENT SANDBOX (Unikraft VM)                         │
+│                                                                            │
+│   [A1] Memory inspection       [A2] Process spawning                       │
+│   [A3] Bytecode manipulation   [A4] Network probing                        │
+│   [A5] Timing/resource side-channels                                       │
+│                                                                            │
+│   Mitigations: Privilege drop, env stripping, bytecode-only,               │
+│                private VPC, hardware VM isolation                           │
+└──────────────────────────────────┬─────────────────────────────────────────┘
+                                   │  (Session Token)
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│               CONTROL PLANE (FastAPI)  ★ HIGH VALUE TARGET ★               │
+│                                                                            │
+│   [B1] Token replay       [B2] Input injection in LLM proxy               │
+│   [B3] Presigned URL abuse  [B4] Rate limiting bypass / DoS               │
+│   [B5] Session validation bugs   [B6] Compromise = ALL credentials        │
+│                                                                            │
+│   GAPS: Rate limiting, mTLS, audit logs, input sanitization, WAF          │
+└──────────────────────────────────┬─────────────────────────────────────────┘
+                                   │  (Real credentials)
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        EXTERNAL SERVICES                                   │
+│   Storage (S3)  ·  LLM Provider  ·  Browser                               │
+│   [C1] Credential theft  [C2] Token overconsumption  [C3] Data exfil      │
+└────────────────────────────────────────────────────────────────────────────┘</code></pre>
+      </div>
+    </section>
+
+    <!-- Section: Top 10 Risks -->
+    <section id="top-risks" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Security → Top Risks</div>
+        <h1>Top 10 Security Risks</h1>
+        <p class="subtitle">Prioritized by severity and likelihood.</p>
+      </div>
+
+      <div class="risk-list">
+        <div class="risk-item risk-critical">
+          <div class="risk-rank">#1</div>
+          <div class="risk-body">
+            <h3>Control Plane Compromise <span class="badge badge-red">Critical</span></h3>
+            <p>Single point holding all credentials. Compromise = total system access to LLM keys, AWS credentials, database, and billing.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> WAF, mTLS between services, secrets rotation, HSM for key storage, separate credential vaults per service.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-high">
+          <div class="risk-rank">#2</div>
+          <div class="risk-body">
+            <h3>Insufficient Rate Limiting <span class="badge badge-red">High</span></h3>
+            <p>Agents can flood control plane requests causing service degradation and cost explosion.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Per-session rate limiting, token bucket algorithms, circuit breakers.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-high">
+          <div class="risk-rank">#3</div>
+          <div class="risk-body">
+            <h3>Prompt Injection via History <span class="badge badge-red">High</span></h3>
+            <p>Poisoned messages manipulate LLM when conversation history is reconstructed by control plane.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Input sanitization, LLM output filtering, separate model instances for user vs data contexts.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#4</div>
+          <div class="risk-body">
+            <h3>Session Token from Memory <span class="badge badge-orange">Medium</span></h3>
+            <p>Sophisticated agent reads process memory to extract session token.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Encrypt tokens in memory, hardware-backed storage, minimize token lifetime.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#5</div>
+          <div class="risk-body">
+            <h3>Presigned URL Abuse <span class="badge badge-orange">Medium</span></h3>
+            <p>Bulk URL generation and potential data exfiltration from S3.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Rate limit generation, 5-minute expiry, monitor patterns.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#6</div>
+          <div class="risk-body">
+            <h3>Unikraft Escape Vulnerability <span class="badge badge-orange">Medium</span></h3>
+            <p>Less battle-tested than Firecracker; potential for undiscovered VM escape vectors.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Security audits, nested isolation, upstream contributions.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#7</div>
+          <div class="risk-body">
+            <h3>Missing Audit Trail <span class="badge badge-orange">Medium</span></h3>
+            <p>Actions not fully traceable — compliance failures and difficult incident response.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Structured logging, correlation IDs, SIEM integration.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#8</div>
+          <div class="risk-body">
+            <h3>Cross-Session Data Leakage <span class="badge badge-orange">Medium</span></h3>
+            <p>Logic bugs in session validation allowing unauthorized access to other users' data.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Fuzzing session logic, isolation tests, formal verification.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#9</div>
+          <div class="risk-body">
+            <h3>Supply Chain Attack <span class="badge badge-orange">Medium</span></h3>
+            <p>Compromised dependencies in sandbox image creating backdoor.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Image signing, SBOM generation, vulnerability scanning, minimal base images.</div>
+          </div>
+        </div>
+
+        <div class="risk-item risk-medium">
+          <div class="risk-rank">#10</div>
+          <div class="risk-body">
+            <h3>LLM Cost Bombing <span class="badge badge-orange">Medium</span></h3>
+            <p>Malicious agents trigger excessive LLM calls before cost cap enforcement kicks in.</p>
+            <div class="risk-fix"><strong>Mitigation:</strong> Real-time token counting, pre-call budget checks, anomaly detection.</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Security Posture Gaps</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Dimension</th><th>Browser Use</th><th>Best-in-Class</th><th>Gap</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Isolation</strong></td><td>Unikraft micro-VM</td><td>Firecracker micro-VM</td><td>Minimal — Firecracker more battle-tested</td></tr>
+            <tr><td><strong>Audit/Observability</strong></td><td>Not described</td><td>Structured logs + SIEM + analytics</td><td class="gap-cell">Significant gap</td></tr>
+            <tr><td><strong>Input Validation</strong></td><td>Cost caps only</td><td>Full validation + output filtering</td><td class="gap-cell">Gap — needs sanitization</td></tr>
+            <tr><td><strong>mTLS</strong></td><td>Not mentioned</td><td>mTLS between all services</td><td class="gap-cell">Gap — should implement</td></tr>
+            <tr><td><strong>Secret Rotation</strong></td><td>Not mentioned</td><td>Auto-rotation via Vault</td><td class="gap-cell">Gap — add rotation</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section: Best Architecture -->
+    <section id="best-arch" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Recommendations → Architecture</div>
+        <h1>Recommended Best Architecture</h1>
+        <p class="subtitle">Defense-in-depth agent platform based on industry analysis and threat modeling.</p>
+      </div>
+
+      <h2>Architectural Principles</h2>
+      <div class="card-grid card-grid-3">
+        <div class="card"><h3>Zero Trust</h3><p>Never trust the agent. Never trust internal services by default. Verify explicitly on every request.</p></div>
+        <div class="card"><h3>Dispose, Don't Preserve</h3><p>Agents should be stateless and disposable. All valuable state lives outside the sandbox.</p></div>
+        <div class="card"><h3>Proxy Everything</h3><p>All external access must be mediated by an authenticated, rate-limited proxy layer.</p></div>
+        <div class="card"><h3>Hardware Isolation</h3><p>Use micro-VMs (Firecracker or Unikraft) — not containers — for untrusted code.</p></div>
+        <div class="card"><h3>Independent Scaling</h3><p>Backend, sandboxes, control plane, and external services scale on their own bottleneck.</p></div>
+        <div class="card"><h3>Observable by Default</h3><p>Every action, request, and decision logged with correlation IDs across all services.</p></div>
+      </div>
+
+      <h2>Technology Decision Matrix</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>If You Need...</th><th>Choose</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Strongest isolation for untrusted code</td><td><strong>Firecracker</strong></td><td>Hardware-level, battle-tested at AWS scale, ~125ms boot</td></tr>
+            <tr><td>Minimal attack surface + strong isolation</td><td><strong>Unikraft</strong></td><td>Unikernel = smaller surface than Firecracker; less ecosystem maturity</td></tr>
+            <tr><td>Maximum spawn speed + density</td><td><strong>ZeroBoot</strong></td><td>0.79ms spawn, ~265KB/VM — ideal for high-throughput batch workloads</td></tr>
+            <tr><td>Enhanced containers without full VMs</td><td><strong>gVisor</strong></td><td>Easier K8s integration, good for compute-heavy workloads</td></tr>
+            <tr><td>Kubernetes-native workflow</td><td><strong>Kata + OpenSandbox</strong></td><td>VM isolation with standard K8s APIs; OpenSandbox adds lifecycle management</td></tr>
+            <tr><td>Multi-tenant, untrusted code</td><td><strong>Pattern 2: Isolate the Agent</strong></td><td>Agent holds nothing of value; maximum containment</td></tr>
+            <tr><td>Avoid building infra, fast to market</td><td><strong>E2B or OpenSandbox</strong></td><td>E2B = managed Firecracker; OpenSandbox = self-hosted turnkey</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Layer-by-Layer Recommendations</h2>
+      <div class="rec-grid">
+        <div class="rec-card">
+          <h3>Sandbox Layer</h3>
+          <div class="table-wrap">
+            <table class="compact-table">
+              <tr><td><strong>Isolation</strong></td><td>Firecracker (primary) or Unikraft. ZeroBoot for batch workloads.</td></tr>
+              <tr><td><strong>Boot optimization</strong></td><td>Warm pools + snapshot/restore for sub-100ms startup.</td></tr>
+              <tr><td><strong>Filesystem</strong></td><td>Read-only root; writable /workspace only.</td></tr>
+              <tr><td><strong>Hardening</strong></td><td>Bytecode-only + privilege drop + env stripping + seccomp profile.</td></tr>
+              <tr><td><strong>Resource limits</strong></td><td>CPU quota, memory limit, PID limit, disk quota via cgroups.</td></tr>
+              <tr><td><strong>Lifetime</strong></td><td>Session-scoped with hard timeout. Scale-to-zero when idle.</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="rec-card">
+          <h3>Control Plane Layer</h3>
+          <div class="table-wrap">
+            <table class="compact-table">
+              <tr><td><strong>Auth</strong></td><td>mTLS between sandbox and control plane; session tokens for authz.</td></tr>
+              <tr><td><strong>Rate limiting</strong></td><td>Per-session token bucket with burst limits.</td></tr>
+              <tr><td><strong>Input validation</strong></td><td>Validate and sanitize ALL inputs from sandbox.</td></tr>
+              <tr><td><strong>Credentials</strong></td><td>Vault/Secrets Manager with automatic rotation.</td></tr>
+              <tr><td><strong>State</strong></td><td>Owns all persistent state. Sandbox is disposable.</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="rec-card">
+          <h3>Network Layer</h3>
+          <div class="table-wrap">
+            <table class="compact-table">
+              <tr><td><strong>Sandbox egress</strong></td><td>Deny all except control plane endpoint.</td></tr>
+              <tr><td><strong>CP egress</strong></td><td>Allowlist of approved external services only.</td></tr>
+              <tr><td><strong>WAF</strong></td><td>In front of control plane for injection protection.</td></tr>
+              <tr><td><strong>VPC design</strong></td><td>Separate subnets per tier with strict security groups.</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="rec-card">
+          <h3>Observability Layer</h3>
+          <div class="table-wrap">
+            <table class="compact-table">
+              <tr><td><strong>Logging</strong></td><td>JSON structured logs with correlation IDs on every request.</td></tr>
+              <tr><td><strong>Analytics</strong></td><td>Baseline agent behavior; alert on anomalies.</td></tr>
+              <tr><td><strong>SIEM</strong></td><td>Export to Splunk/Datadog/CloudWatch.</td></tr>
+              <tr><td><strong>Cost</strong></td><td>Real-time per-session tracking with hard cutoffs.</td></tr>
+              <tr><td><strong>Audit</strong></td><td>Immutable audit log for compliance (SOC 2, ISO 27001).</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Implementation -->
+    <section id="implementation" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Recommendations → Implementation</div>
+        <h1>Implementation Roadmap</h1>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-marker phase-1"></div>
+          <div class="timeline-content">
+            <h3>Phase 1: Foundation <span class="badge badge-blue">Weeks 1-4</span></h3>
+            <ul>
+              <li>Firecracker/Unikraft micro-VM provisioning</li>
+              <li>Basic control plane (FastAPI) with session token auth</li>
+              <li>Private VPC with egress deny</li>
+              <li>LLM proxying through control plane</li>
+              <li>Docker-based dev parity</li>
+            </ul>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-marker phase-2"></div>
+          <div class="timeline-content">
+            <h3>Phase 2: Hardening <span class="badge badge-orange">Weeks 5-8</span></h3>
+            <ul>
+              <li>Bytecode-only execution + privilege drop + env stripping</li>
+              <li>mTLS between sandbox and control plane</li>
+              <li>Per-session rate limiting</li>
+              <li>Input validation on all control plane endpoints</li>
+              <li>Presigned URL file sync with short expiry</li>
+              <li>Resource limits (CPU, memory, PID, disk)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-marker phase-3"></div>
+          <div class="timeline-content">
+            <h3>Phase 3: Observability <span class="badge badge-green">Weeks 9-12</span></h3>
+            <ul>
+              <li>Structured logging with correlation IDs</li>
+              <li>Behavioral analytics baselines</li>
+              <li>SIEM integration</li>
+              <li>Real-time cost monitoring with hard cutoffs</li>
+              <li>Immutable audit trail</li>
+            </ul>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-marker phase-4"></div>
+          <div class="timeline-content">
+            <h3>Phase 4: Advanced Security <span class="badge badge-red">Weeks 13-16</span></h3>
+            <ul>
+              <li>Secret rotation via Vault/Secrets Manager</li>
+              <li>WAF deployment</li>
+              <li>seccomp profiles for sandbox</li>
+              <li>Supply chain security (image signing, SBOM)</li>
+              <li>Red team exercises / penetration testing</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <h2>Key Takeaways</h2>
+      <div class="takeaways">
+        <div class="takeaway">
+          <span class="takeaway-num">1</span>
+          <p><strong>Browser Use's architecture is production-grade.</strong> The "Isolate the Agent" pattern with a stateless control plane is the correct approach for multi-tenant platforms.</p>
+        </div>
+        <div class="takeaway">
+          <span class="takeaway-num">2</span>
+          <p><strong>The control plane is the highest-value target.</strong> Hardening it with mTLS, WAF, rate limiting, and secrets rotation is the single most impactful investment.</p>
+        </div>
+        <div class="takeaway">
+          <span class="takeaway-num">3</span>
+          <p><strong>Observability is the biggest gap.</strong> Structured logging, correlation IDs, and behavioral analytics are critical for a system running millions of agents.</p>
+        </div>
+        <div class="takeaway">
+          <span class="takeaway-num">4</span>
+          <p><strong>Micro-VMs are the industry consensus.</strong> Firecracker, Unikraft, Kata — the industry has converged on hardware-level isolation. Containers alone are insufficient.</p>
+        </div>
+        <div class="takeaway">
+          <span class="takeaway-num">5</span>
+          <p><strong>The "Isolate the Agent" pattern is winning.</strong> Browser Use, Manus, Devin, and others all run the entire agent inside isolated sandboxes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Sources -->
+    <section id="sources" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">References</div>
+        <h1>Sources</h1>
+      </div>
+
+      <div class="sources-list">
+        <div class="source-group">
+          <h3>Primary Source</h3>
+          <ul>
+            <li><a href="https://browser-use.com/posts/two-ways-to-sandbox-agents" target="_blank">Browser Use: How We Built Secure, Scalable Agent Sandbox Infrastructure</a> — Larsen Cundric, Feb 2026</li>
+            <li><a href="https://x.com/larsencc/status/2027225210412470668" target="_blank">@larsencc X Article</a> — Original post</li>
+          </ul>
+        </div>
+        <div class="source-group">
+          <h3>Open Source Projects</h3>
+          <ul>
+            <li><a href="https://github.com/zerobootdev/zeroboot" target="_blank">ZeroBoot</a> — Sub-millisecond VM sandboxes via CoW forking (Apache-2.0)</li>
+            <li><a href="https://github.com/alibaba/OpenSandbox" target="_blank">Alibaba OpenSandbox</a> — General-purpose sandbox platform for AI agents (Apache-2.0)</li>
+          </ul>
+        </div>
+        <div class="source-group">
+          <h3>Industry Analysis</h3>
+          <ul>
+            <li><a href="https://northflank.com/blog/how-to-sandbox-ai-agents" target="_blank">Northflank: How to Sandbox AI Agents in 2026</a></li>
+            <li><a href="https://northflank.com/blog/firecracker-vs-gvisor" target="_blank">Northflank: Firecracker vs gVisor</a></li>
+            <li><a href="https://e2b.dev/blog/how-manus-uses-e2b-to-provide-agents-with-virtual-computers" target="_blank">E2B: How Manus Uses E2B</a></li>
+            <li><a href="https://developers.openai.com/codex/security/" target="_blank">OpenAI Codex Security Documentation</a></li>
+            <li><a href="https://www.anthropic.com/engineering/claude-code-sandboxing" target="_blank">Anthropic: Claude Code Sandboxing</a></li>
+            <li><a href="https://codelabs.developers.google.com/codelabs/gke/ai-agents-on-gke" target="_blank">Google: AI Agents on GKE with Agent Sandbox</a></li>
+            <li><a href="https://arxiv.org/html/2505.06817v1" target="_blank">arXiv: Control Plane as a Tool Pattern</a></li>
+            <li><a href="https://dev.to/nesquikm/i-run-a-fleet-of-ai-agents-in-production-heres-the-architecture-that-keeps-them-honest-3l1h" target="_blank">DEV: Production Fleet Agent Architecture</a></li>
+            <li><a href="https://www.infoq.com/news/2025/10/ai-agent-orchestration/" target="_blank">InfoQ: AI Agents Become Execution Engines</a></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
