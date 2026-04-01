@@ -66,6 +66,10 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Isolation Technologies
         </a>
+        <a href="#decision-tree" class="nav-link" data-section="decision-tree">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="12" y1="14" x2="6" y2="19"/><line x1="12" y1="14" x2="18" y2="19"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>
+          When to Use What
+        </a>
       </div>
 
       <div class="nav-group">
@@ -795,6 +799,365 @@ async with sandbox:
         <div class="card">
           <h3>CoW Fork Sandboxing</h3>
           <p>ZeroBoot's approach — snapshot a VM, then fork it via copy-on-write for sub-millisecond spawns with hardware isolation. The next frontier.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Decision Tree -->
+    <section id="decision-tree" class="section">
+      <div class="section-header">
+        <div class="breadcrumb">Comparison → Decision Tree</div>
+        <h1>When to Use What</h1>
+        <p class="subtitle">Decision tree for choosing the right sandbox isolation technology based on workload type, security requirements, and operational constraints.</p>
+      </div>
+
+      <h2>Decision Tree</h2>
+      <p>Start at the top and follow the path that matches your requirements:</p>
+
+      <div class="tree-container">
+        <div class="tree">
+          <!-- Root -->
+          <div class="tree-node tree-root">
+            <div class="node-content node-question">What is your primary workload?</div>
+          </div>
+          <div class="tree-branches">
+
+            <!-- Branch 1: Short-lived batch -->
+            <div class="tree-branch">
+              <div class="tree-node">
+                <div class="node-content node-question">Short-lived batch tasks<br><small>evals, parallel code exec, ephemeral jobs</small></div>
+              </div>
+              <div class="tree-sub">
+                <div class="tree-node">
+                  <div class="node-content node-question">Need networking inside sandbox?</div>
+                </div>
+                <div class="tree-branches">
+                  <div class="tree-branch">
+                    <div class="tree-node">
+                      <div class="node-content node-answer node-zb">No → <strong>ZeroBoot</strong></div>
+                    </div>
+                    <div class="node-rationale">0.79ms spawn, ~265KB/VM. Best density and throughput. Serial I/O only — no outbound network. Ideal for pure code execution, eval harnesses, and batch processing.</div>
+                  </div>
+                  <div class="tree-branch">
+                    <div class="tree-node">
+                      <div class="node-content node-answer node-uk">Yes → <strong>Unikraft</strong></div>
+                    </div>
+                    <div class="node-rationale">Sub-second boot with networking. Minimal kernel attack surface. Use with a control plane proxy (Browser Use pattern) for mediated external access.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Branch 2: Long-lived agent sessions -->
+            <div class="tree-branch">
+              <div class="tree-node">
+                <div class="node-content node-question">Long-lived agent sessions<br><small>browsing, coding, multi-step tasks</small></div>
+              </div>
+              <div class="tree-sub">
+                <div class="tree-node">
+                  <div class="node-content node-question">What is your security posture?</div>
+                </div>
+                <div class="tree-branches">
+                  <div class="tree-branch">
+                    <div class="tree-node">
+                      <div class="node-content node-answer node-uk">Max isolation → <strong>Unikraft</strong></div>
+                    </div>
+                    <div class="node-rationale">Full VM isolation with unikernel design — smallest possible kernel attack surface. Each session gets dedicated VM with private VPC. Scale-to-zero for idle agents.</div>
+                  </div>
+                  <div class="tree-branch">
+                    <div class="tree-node">
+                      <div class="node-content node-answer node-os">Enhanced containers → <strong>OpenSandbox + gVisor</strong></div>
+                    </div>
+                    <div class="node-rationale">Kubernetes-native with gVisor runtime class. Per-sandbox egress controls, lifecycle management, and multi-language SDKs. Strong isolation without full VM overhead.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Branch 3: Kubernetes-native platform -->
+            <div class="tree-branch">
+              <div class="tree-node">
+                <div class="node-content node-question">Kubernetes-native platform<br><small>enterprise, multi-team, turnkey</small></div>
+              </div>
+              <div class="tree-sub">
+                <div class="tree-node">
+                  <div class="node-content node-question">Build vs Buy?</div>
+                </div>
+                <div class="tree-branches">
+                  <div class="tree-branch">
+                    <div class="tree-node">
+                      <div class="node-content node-answer node-os">Turnkey → <strong>OpenSandbox</strong></div>
+                    </div>
+                    <div class="node-rationale">Full platform: lifecycle server, SDKs, ingress/egress proxies, pluggable runtimes. CNCF listed, 9.7k stars, 72 releases. Swap isolation backend (gVisor, Kata, Firecracker) without changing app code.</div>
+                  </div>
+                  <div class="tree-branch">
+                    <div class="tree-node">
+                      <div class="node-content node-answer node-gv">Custom → <strong>gVisor</strong> on GKE</div>
+                    </div>
+                    <div class="node-rationale">Google's user-space kernel as a RuntimeClass. Best integration with GKE Agent Sandbox, warm pools, and Kubernetes-native autoscaling. 10-30% I/O overhead but no VM boot cost.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <h2>Quick Reference by Workload</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Workload Type</th>
+              <th>Best Choice</th>
+              <th>Runner-Up</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Parallel evals / batch code exec</strong></td>
+              <td><span class="badge badge-zb">ZeroBoot</span></td>
+              <td><span class="badge badge-uk">Unikraft</span></td>
+              <td>1000 forks in 815ms, ~265KB each. Nothing comes close for throughput density.</td>
+            </tr>
+            <tr>
+              <td><strong>Browser agents (long-running)</strong></td>
+              <td><span class="badge badge-uk">Unikraft</span></td>
+              <td><span class="badge badge-os">OpenSandbox</span></td>
+              <td>Full VM with networking + scale-to-zero. Browser Use's proven production pattern.</td>
+            </tr>
+            <tr>
+              <td><strong>Coding agents (IDE, terminal)</strong></td>
+              <td><span class="badge badge-os">OpenSandbox</span></td>
+              <td><span class="badge badge-uk">Unikraft</span></td>
+              <td>Built-in VS Code, desktop environments, and code interpreter SDKs out of the box.</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-tenant SaaS platform</strong></td>
+              <td><span class="badge badge-uk">Unikraft</span></td>
+              <td><span class="badge badge-gv">gVisor</span></td>
+              <td>Hardware VM isolation between tenants. Control plane proxy pattern for credential isolation.</td>
+            </tr>
+            <tr>
+              <td><strong>Enterprise K8s fleet</strong></td>
+              <td><span class="badge badge-os">OpenSandbox</span></td>
+              <td><span class="badge badge-gv">gVisor</span></td>
+              <td>Kubernetes-native, CNCF listed, pluggable runtimes, enterprise lifecycle management.</td>
+            </tr>
+            <tr>
+              <td><strong>RL training environments</strong></td>
+              <td><span class="badge badge-os">OpenSandbox</span></td>
+              <td><span class="badge badge-zb">ZeroBoot</span></td>
+              <td>OpenSandbox has explicit RL training sandbox examples. ZeroBoot's CoW forking enables rapid environment reset.</td>
+            </tr>
+            <tr>
+              <td><strong>Low-budget / startup</strong></td>
+              <td><span class="badge badge-gv">gVisor</span></td>
+              <td><span class="badge badge-os">OpenSandbox</span></td>
+              <td>gVisor is just a RuntimeClass — no extra infra. Minimal ops overhead, strong enough isolation for most use cases.</td>
+            </tr>
+            <tr>
+              <td><strong>Compliance-heavy (SOC2, ISO)</strong></td>
+              <td><span class="badge badge-uk">Unikraft</span></td>
+              <td><span class="badge badge-os">OpenSandbox + Kata</span></td>
+              <td>Hardware VM boundary is the strongest compliance story. Auditors understand "each workload runs in its own VM."</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Comparison Matrix</h2>
+      <p>Side-by-side evaluation across the dimensions that matter most when choosing a sandbox runtime:</p>
+      <div class="table-wrap table-scroll">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th><span class="badge badge-zb">ZeroBoot</span></th>
+              <th><span class="badge badge-os">OpenSandbox</span></th>
+              <th><span class="badge badge-uk">Unikraft</span></th>
+              <th><span class="badge badge-gv">gVisor</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Isolation Boundary</strong></td>
+              <td>KVM VM (CoW fork)</td>
+              <td>Pluggable: gVisor / Kata / Firecracker</td>
+              <td>Unikernel micro-VM (KVM)</td>
+              <td>User-space kernel (syscall interception)</td>
+            </tr>
+            <tr>
+              <td><strong>Security Level</strong></td>
+              <td><span class="meter meter-5"><span></span></span> Hardware VM</td>
+              <td><span class="meter meter-4"><span></span></span> Configurable</td>
+              <td><span class="meter meter-5"><span></span></span> Hardware VM</td>
+              <td><span class="meter meter-3"><span></span></span> Syscall-level</td>
+            </tr>
+            <tr>
+              <td><strong>Spawn Latency</strong></td>
+              <td><strong>0.79ms</strong> p50</td>
+              <td>Depends on backend</td>
+              <td>&lt; 1 second</td>
+              <td>Milliseconds</td>
+            </tr>
+            <tr>
+              <td><strong>Memory per Sandbox</strong></td>
+              <td><strong>~265KB</strong></td>
+              <td>Depends on backend</td>
+              <td>Low (unikernel)</td>
+              <td>Low (shared kernel)</td>
+            </tr>
+            <tr>
+              <td><strong>Networking</strong></td>
+              <td class="cell-warn">None (serial I/O)</td>
+              <td>Full (ingress + egress control)</td>
+              <td>Full (private VPC)</td>
+              <td>Full (K8s Network Policy)</td>
+            </tr>
+            <tr>
+              <td><strong>Kubernetes Native</strong></td>
+              <td class="cell-warn">No</td>
+              <td class="cell-good">Yes (first-class)</td>
+              <td class="cell-warn">No (bare metal)</td>
+              <td class="cell-good">Yes (RuntimeClass)</td>
+            </tr>
+            <tr>
+              <td><strong>SDK Support</strong></td>
+              <td>Python, TypeScript</td>
+              <td>Python, Java, TypeScript, C#, Go</td>
+              <td>REST API (custom)</td>
+              <td>N/A (runtime layer)</td>
+            </tr>
+            <tr>
+              <td><strong>Lifecycle Mgmt</strong></td>
+              <td>API-based</td>
+              <td class="cell-good">Full (server + SDKs)</td>
+              <td>API-based</td>
+              <td>Kubernetes-managed</td>
+            </tr>
+            <tr>
+              <td><strong>Scale-to-Zero</strong></td>
+              <td class="cell-good">Instant (CoW)</td>
+              <td>Configurable</td>
+              <td class="cell-good">Built-in</td>
+              <td>Via K8s autoscaler</td>
+            </tr>
+            <tr>
+              <td><strong>Production Maturity</strong></td>
+              <td class="cell-warn">Prototype</td>
+              <td class="cell-good">Production (72 releases)</td>
+              <td class="cell-good">Production (Browser Use)</td>
+              <td class="cell-good">Production (Google)</td>
+            </tr>
+            <tr>
+              <td><strong>License</strong></td>
+              <td>Apache 2.0</td>
+              <td>Apache 2.0</td>
+              <td>Proprietary Cloud + BSD-3 core</td>
+              <td>Apache 2.0</td>
+            </tr>
+            <tr>
+              <td><strong>Best For</strong></td>
+              <td>High-throughput batch, evals</td>
+              <td>Enterprise K8s platforms</td>
+              <td>Multi-tenant agent SaaS</td>
+              <td>K8s workloads, compute-heavy agents</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Security Requirements Mapping</h2>
+      <p>Map your security requirements to the appropriate isolation technology:</p>
+
+      <div class="sec-grid">
+        <div class="sec-card">
+          <div class="sec-level sec-critical">CRITICAL</div>
+          <h3>Untrusted code from external users</h3>
+          <p>Financial, healthcare, or government workloads with strict compliance requirements. Zero tolerance for sandbox escape.</p>
+          <div class="sec-rec">
+            <strong>Use:</strong> <span class="badge badge-uk">Unikraft</span> or <span class="badge badge-zb">ZeroBoot</span>
+            <p>Hardware VM isolation (KVM). Dedicated kernel per sandbox. Unikraft adds unikernel minimalism. Both provide the strongest possible boundary short of bare metal.</p>
+          </div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-level sec-high">HIGH</div>
+          <h3>Multi-tenant platform with code execution</h3>
+          <p>SaaS platforms where different customers' agents run on shared infrastructure. Need to prevent cross-tenant data access.</p>
+          <div class="sec-rec">
+            <strong>Use:</strong> <span class="badge badge-uk">Unikraft</span> + Control Plane or <span class="badge badge-os">OpenSandbox + Kata</span>
+            <p>VM-level isolation between tenants. Control plane proxy for credential separation. OpenSandbox + Kata gives you Kubernetes orchestration with VM boundaries.</p>
+          </div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-level sec-medium">MEDIUM</div>
+          <h3>Internal agents with supervised access</h3>
+          <p>Internal tooling, coding assistants, CI/CD agents. Agents are somewhat trusted but should be contained. Acceptable kernel-shared isolation.</p>
+          <div class="sec-rec">
+            <strong>Use:</strong> <span class="badge badge-gv">gVisor</span> or <span class="badge badge-os">OpenSandbox + gVisor</span>
+            <p>User-space kernel intercepts syscalls without full VM overhead. 10-30% I/O performance cost is acceptable. Simplest to deploy on existing Kubernetes clusters.</p>
+          </div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-level sec-low">DEVELOPMENT</div>
+          <h3>Dev/test/eval environments</h3>
+          <p>Local development, CI pipelines, evaluation harnesses. Speed and density matter more than production-grade isolation.</p>
+          <div class="sec-rec">
+            <strong>Use:</strong> <span class="badge badge-zb">ZeroBoot</span> (if no networking needed) or <strong>Docker</strong> (if networking needed)
+            <p>ZeroBoot's 0.79ms spawn and 265KB footprint is perfect for running thousands of parallel evals. For local dev with networking, Docker with the same container image (Browser Use pattern) ensures dev/prod parity.</p>
+          </div>
+        </div>
+      </div>
+
+      <h2>The Combined Architecture</h2>
+      <p>In practice, production systems often combine multiple technologies. Here is the recommended layered approach:</p>
+      <div class="diagram-container">
+        <pre class="diagram"><code>┌─────────────────────────────────────────────────────────────────────────┐
+│                    WHEN TO USE WHAT — LAYERED VIEW                      │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 4: ORCHESTRATION PLATFORM                                │    │
+│  │  ┌───────────────────┐  ┌────────────────────────────────────┐  │    │
+│  │  │ OpenSandbox       │  │ Custom (Browser Use pattern)       │  │    │
+│  │  │ • K8s lifecycle   │  │ • Bare metal provisioning          │  │    │
+│  │  │ • Multi-lang SDKs │  │ • Control plane proxy              │  │    │
+│  │  │ • Ingress/Egress  │  │ • Session management               │  │    │
+│  │  └───────────────────┘  └────────────────────────────────────┘  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 3: ISOLATION RUNTIME (choose based on security needs)    │    │
+│  │                                                                 │    │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────┐ ┌───────────┐  │    │
+│  │  │  ZeroBoot    │ │  Unikraft    │ │  Kata    │ │  gVisor   │  │    │
+│  │  │  CoW fork VM │ │  Unikernel   │ │  Full VM │ │  Syscall  │  │    │
+│  │  │  0.79ms      │ │  &lt;1s boot    │ │  ~200ms  │ │  ~ms      │  │    │
+│  │  │  265KB       │ │  Low mem     │ │  Moderate│ │  Low      │  │    │
+│  │  │  No network  │ │  Network OK  │ │  Full    │ │  Full     │  │    │
+│  │  └──────────────┘ └──────────────┘ └──────────┘ └───────────┘  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 2: HARDENING (applies to all runtimes)                   │    │
+│  │  • Bytecode-only execution  • Privilege drop  • Env stripping  │    │
+│  │  • Read-only rootfs  • seccomp profile  • Resource limits      │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 1: INFRASTRUCTURE                                       │    │
+│  │  • KVM-enabled hosts (bare metal or nested virt)               │    │
+│  │  • Private VPC / Network Policy  • mTLS  • WAF                 │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────┘</code></pre>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-icon">💡</div>
+        <div>
+          <p><strong>Key insight:</strong> The isolation runtime (Layer 3) is swappable. OpenSandbox makes this explicit — change the RuntimeClass and your gVisor-based sandbox becomes a Kata/Firecracker VM without modifying application code. This lets you start with gVisor for speed and upgrade to hardware VM isolation as your threat model demands it.</p>
         </div>
       </div>
     </section>
